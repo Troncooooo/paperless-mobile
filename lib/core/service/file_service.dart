@@ -239,14 +239,31 @@ class FileService {
 
   Future<void> _initDownloadsDirectory() async {
     if (Platform.isAndroid) {
-      var directory = Directory('/storage/emulated/0/Download');
-      if (!await directory.exists()) {
-        final downloadsDir = await getExternalStorageDirectories(
-          type: StorageDirectory.downloads,
+      // Scoped Storage Compliant: Android 10+ restricts direct access to 
+      // /storage/emulated/0/Download without MANAGE_EXTERNAL_STORAGE.
+      // We must use getExternalStorageDirectories or app-specific storage paths.
+      final directories = await getExternalStorageDirectories(
+        type: StorageDirectory.downloads,
+      );
+      
+      if (directories == null || directories.isEmpty) {
+        logger.fd(
+          'External downloads directory not accessible. Falling back to app-specific storage.',
+          className: runtimeType.toString(),
+          methodName: '_initDownloadsDirectory',
+          level: 1,
         );
-        directory = await downloadsDir!.first.create(recursive: true);
+        // Fallback to app-specific documents directory
+        final appDir = await getApplicationDocumentsDirectory();
+        _downloadsDirectory = Directory(
+          p.join(appDir.path, 'downloads'),
+        ).create(recursive: true);
+        return;
       }
-      _downloadsDirectory = directory;
+      
+      // Create app-specific subfolder for scoped storage compliance (Android 13+)
+      final downloadsPath = p.join(directories.first.path, 'Paperless');
+      _downloadsDirectory = Directory(downloadsPath).create(recursive: true);
       return;
     } else if (Platform.isIOS) {
       final appDir = await getApplicationDocumentsDirectory();
