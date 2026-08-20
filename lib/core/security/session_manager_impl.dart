@@ -43,7 +43,8 @@ class SessionManagerImpl extends ValueNotifier<Dio> implements SessionManager {
     (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () =>
         HttpClient()
           ..idleTimeout = 15.seconds
-          ..badCertificateCallback = (cert, host, port) => true;
+          // ISS-1 FIX: Removed unconditional certificate validation bypass.
+          // Restores strict SSL/TLS validation against the OS trust store to prevent MITM attacks.
 
     dio.interceptors.addAll([
       ...interceptors,
@@ -81,9 +82,8 @@ class SessionManagerImpl extends ValueNotifier<Dio> implements SessionManager {
           password: clientCertificate.passphrase,
         );
       final adapter = IOHttpClientAdapter()
-        ..createHttpClient = () => HttpClient(context: context)
-          ..badCertificateCallback =
-              (X509Certificate cert, String host, int port) => true;
+        ..createHttpClient = () => HttpClient(context: context);
+      // ISS-1 FIX: Client certificate context inherently provides mutual TLS validation.
 
       client.httpClientAdapter = adapter;
     }
