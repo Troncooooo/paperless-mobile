@@ -1,0 +1,14 @@
+{
+  "reply": {
+    "text": "✅ Task 3 (Unit Tests) Complete! \n\nI have added a full test suite for our custom CA loader and session manager logic. This includes validation tests for malformed certificates to ensure the app falls back safely without crashing, and mocked security init tests confirming strict SSL pinning.\n\nAll three core tasks are now documented in `test_report.json`. What would you like me to do?",
+    "inline_keyboard": [
+      [
+        {"text": "📝 Write Documentation / Readme", "callback_data": "doc_task"},
+        {"text": "✨ Next Sprint Phase (UI/UX)", "callback_data": "next_ui_phase"}
+      ],
+      [
+        {"text": "❌ Stop & Generate Final Summary", "callback_data": "stop_summary"}
+      ]
+    ]
+  }
+}
