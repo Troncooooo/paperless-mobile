@@ -30,6 +30,8 @@ class PaperlessApiException implements Exception {
 
 enum ErrorCode {
   unknown,
+  resourceNotFound,
+  serverError,
   authenticationFailed,
   mfaCodeRequired,
   notAuthenticated,
