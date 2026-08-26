@@ -1,0 +1,24 @@
+{
+  "name": "paperless-mobile",
+  "version": "1.0.0",
+  "description": "Welcome to the official repository for **Paperless-Mobile**, a cross-platform Flutter application designed to integrate seamlessly with [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx).",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Troncooooo/paperless-mobile.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Troncooooo/paperless-mobile/issues"
+  },
+  "homepage": "https://github.com/Troncooooo/paperless-mobile#readme"
+}

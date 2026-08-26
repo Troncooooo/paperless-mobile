@@ -1,0 +1,24 @@
+#!/bin/sh
+# pre-commit: block commits that introduce high-confidence secret tokens.
+# Offline, dependency-free (POSIX sh + grep). Installed via:
+#   git config core.hooksPath git-hooks
+# Excluded paths (may legitimately reference these patterns): git-hooks/, docs/
+PATTERNS='github_pat_[A-Za-z0-9]+|github_secret_[A-Za-z0-9]+|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{20,}'
+
+status=0
+for f in $(git diff --cached --name-only --diff-filter=ACM); do
+  case "$f" in
+    git-hooks/*|*.md) continue ;;
+  esac
+  if git show ":$f" 2>/dev/null | grep -Iq .; then :; else continue; fi  # skip empty/binary
+  matches=$(git show ":$f" 2>/dev/null | grep -nE "$PATTERNS")
+  if [ -n "$matches" ]; then
+    status=1
+    echo "PRE-COMMIT BLOCKED: potential secret token in staged '$f':"
+    echo "$matches" | awk '{ n=split($0,a,":"); print "  line " a[1] }' | sort -u | head -5
+    echo "Remove the secret from the file, rotate it if it was ever active,"
+    echo "then re-stage. (False positive? exclude this path via git-hooks/ or *.md.)"
+  fi
+done
+[ "$status" -eq 0 ] || echo "Commit aborted."
+exit "$status"

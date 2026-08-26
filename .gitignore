@@ -78,3 +78,8 @@ assets/changelogs/*.md
 
 # FVM Version Cache
 .fvm/
+# Credentials
+.env
+.env.*
+
+.context/
