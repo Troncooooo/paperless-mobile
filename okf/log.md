@@ -1,5 +1,17 @@
 # Bundle Update Log
 
+## 2026-09-14
+
+* **Creation**: [Build & release pipeline](/platform/build-pipeline.md) — evidence-backed playbook capturing the ARM-Pi emulated build setup, the session-observed pain points, the A→B simplification plan (finish on Pi, then GitHub Actions on a fork), and the upstream PR scoping (security hardening + compat, not build machinery). Marked `draft` with two open SDK/signing questions for maintainers.
+
+## 2026-09-13
+
+* **Update** (repo mode): re-verified claims against current code; refreshed two concepts.
+  * [TLS & custom CA](/security/tls-custom-ca.md): recorded the 2026-09-13 `CustomCaLoader` rework — `currentContext` cache, `main()` preload (`ensureLoaded`), base64/PEM input via temp-file `setTrustedCertificates`, and injectable `ICustomCaStore` (default `SecureStorageCaStore`);
+    corrected the testing section to the mock-injection design the tests actually use.
+  * [Android findings](/platform/android-findings.md): biometrics row now cites local_auth 2.x `isDeviceSupported()` probe at current line numbers (re-verified `biometricOnly: false` still present).
+  * Evidence: `custom_ca_loader.dart`, `custom_ca_loader_test.dart`, `session_security_init_test.dart`, `authentication_service.dart` at working tree 2026-09-13.
+
 ## 2026-08-25
 
 * **Update** (repo mode): populated the previously empty bundle from repository evidence; verified code state at HEAD before writing.
