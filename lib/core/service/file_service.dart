@@ -251,11 +251,10 @@ class FileService {
           'External downloads directory not accessible. Falling back to app-specific storage.',
           className: runtimeType.toString(),
           methodName: '_initDownloadsDirectory',
-          level: 1,
         );
         // Fallback to app-specific documents directory
         final appDir = await getApplicationDocumentsDirectory();
-        _downloadsDirectory = Directory(
+        _downloadsDirectory = await Directory(
           p.join(appDir.path, 'downloads'),
         ).create(recursive: true);
         return;
@@ -263,7 +262,8 @@ class FileService {
       
       // Create app-specific subfolder for scoped storage compliance (Android 13+)
       final downloadsPath = p.join(directories.first.path, 'Paperless');
-      _downloadsDirectory = Directory(downloadsPath).create(recursive: true);
+      _downloadsDirectory =
+          await Directory(downloadsPath).create(recursive: true);
       return;
     } else if (Platform.isIOS) {
       final appDir = await getApplicationDocumentsDirectory();

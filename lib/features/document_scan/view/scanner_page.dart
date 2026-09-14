@@ -78,6 +78,7 @@ class _ScannerPageState extends State<ScannerPage>
                 LoadingStatus.loading => Center(child: Text("Restoring...")),
                 LoadingStatus.loaded => _buildImageGrid(state.scans),
                 LoadingStatus.error => Placeholder(),
+                _ => _buildEmptyState(),
               };
             },
           ),

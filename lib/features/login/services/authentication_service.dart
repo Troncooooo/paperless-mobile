@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'dart:async';
 
@@ -63,8 +64,9 @@ class LocalAuthenticationService {
 
   /// Checks if the device credentials are strong enough for authentication.
   Future<bool> _isDeviceSecureEnough() async {
-    // On Android, checking canAuthenticate() handles PIN/Pattern availability
-    final canAuth = await localAuthentication.canAuthenticate();
-    return canAuth;
+    // local_auth 2.x: `canAuthenticate()` was removed; device support plus
+    // the platform's own credential fallback (biometricOnly: false) is enough
+    // to decide whether to offer the fallback at all.
+    return await localAuthentication.isDeviceSupported();
   }
 }

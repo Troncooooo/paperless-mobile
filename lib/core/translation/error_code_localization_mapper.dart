@@ -5,6 +5,7 @@ import 'package:paperless_mobile/generated/l10n/app_localizations.dart';
 String translateError(BuildContext context, ErrorCode code) {
   return switch (code) {
     ErrorCode.unknown => S.of(context)!.anUnknownErrorOccurred,
+    ErrorCode.resourceNotFound => S.of(context)!.anUnknownErrorOccurred,
     ErrorCode.authenticationFailed =>
       S.of(context)!.authenticationFailedPleaseTryAgain,
     ErrorCode.notAuthenticated => S.of(context)!.userIsNotAuthenticated,

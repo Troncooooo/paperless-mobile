@@ -434,6 +434,7 @@ extension ToFilterRuleExtension on DocumentFilter {
           ),
         ),
       ],
+      _ => <SavedViewFilterRule>[],
     };
 
     filterRules.addAll(tagRules);

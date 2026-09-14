@@ -25,7 +25,7 @@ void main() {
       test('should save a base64 certificate to the secure store', () async {
         when(() => mockStore.saveCA(any())).thenAnswer((_) async {});
         
-        await loader.saveCustomCa(validCaBase64, storage: mockStore);
+        await loader.saveCA(validCaBase64, storage: mockStore);
         
         verify(() => mockStore.saveCA(validCaBase64)).called(1);
       });
@@ -33,7 +33,7 @@ void main() {
       test('should delete the stored certificate', () async {
         when(() => mockStore.deleteCA()).thenAnswer((_) async {});
         
-        await loader.removeCustomCa(storage: mockStore);
+        await loader.removeCA(storage: mockStore);
         
         verify(() => mockStore.deleteCA()).called(1);
       });
@@ -43,7 +43,7 @@ void main() {
       test('should return null if no CA is stored', () async {
         when(() => mockStore.readCA()).thenAnswer((_) => Future.value(null));
         
-        final context = await loader.getCustomContext(mockStore);
+        final context = await loader.getSecurityContext(mockStore);
         
         expect(context, isNull);
         verifyNever(() => mockStore.deleteCA()); // Shouldn't try to delete empty.
@@ -54,7 +54,7 @@ void main() {
           () => mockStore.readCA(),
         ).thenAnswer((_) => Future.value(validCaBase64));
         
-        final context = await loader.getCustomContext(mockStore);
+        final context = await loader.getSecurityContext(mockStore);
         
         // In a real flutter_test environment without actual X509Certificate parsing 
         // mocked out, this verifies the retrieval logic flow.
@@ -66,7 +66,7 @@ void main() {
           () => mockStore.readCA(),
         ).thenAnswer((_) => Future.value('!invalid_base_64_chars!!@#'));
         
-        final context = await loader.getCustomContext(mockStore);
+        final context = await loader.getSecurityContext(mockStore);
         
         expect(context, isNull); // Fallback to null for malformed certs
       });

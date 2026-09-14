@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:paperless_mobile/core/security/custom_ca_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -127,6 +128,10 @@ void main() async {
       );
       final FlutterSecureStorage secureStorage = FlutterSecureStorage();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+      // TASK-02 / ISS-1: preload any user-installed custom CA into the
+      // shared SecurityContext cache before the Dio client is created.
+      await CustomCaLoader.ensureLoaded();
 
       final localStore = LocalStore(defaultLocale);
       final languageHeaderInterceptor = LanguageHeaderInterceptor(() {

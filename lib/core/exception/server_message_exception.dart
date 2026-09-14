@@ -15,7 +15,7 @@ class ServerMessageException implements Exception {
     this.message, {
     this.statusCode,
     this.requestPath,
-    this.originalBody,
+    dynamic originalBody,
   }) : originalBody = _sanitizeBody(originalBody);
 
   /// Sanitizes the [body] by removing sensitive fields (AC-04, NFR-04).
