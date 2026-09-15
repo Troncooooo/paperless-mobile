@@ -35,6 +35,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Provision CI release keystore
+        env:
+          CPS: paperless-ci-storepass-2026
+        run: |
+          cd android
+          keytool -genkeypair -v -keystore ci-release.keystore \
+            -alias paperless-mobile-ci -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "$CPS" -keypass "$CPS" \
+            -dname "CN=Paperless Mobile CI, OU=Mobile, O=Troncooooo, L=Amsterdam, C=NL"
+          printf 'storeFile=ci-release.keystore\nkeyAlias=paperless-mobile-ci\nstorePassword=%s\nkeyPassword=%s\n' "$CPS" "$CPS" > key.properties
+
       - name: Show toolchain
         run: flutter --version
 
@@ -47,9 +58,12 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Upload APK artifact
+      - name: Upload APK + keystore artifact
         uses: actions/upload-artifact@v4
         with:
-          name: paperless-mobile-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 90
+          name: paperless-mobile-release
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            android/ci-release.keystore
+            android/key.properties
+          retention-days: 365
