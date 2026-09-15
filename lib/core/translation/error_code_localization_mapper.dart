@@ -97,5 +97,7 @@ String translateError(BuildContext context, ErrorCode code) {
       S.of(context)!.couldNotBulkEditDocuments,
     ErrorCode.profileGetError => S.of(context)!.couldNotLoadUserProfile,
     ErrorCode.invalidApiKey => S.of(context)!.invalidApiKey,
+    // Wildcard: keep the app compiling when the upstream ErrorCode enum grows.
+    _ => S.of(context)!.anUnknownErrorOccurred,
   };
 }
