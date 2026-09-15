@@ -42,12 +42,22 @@ jobs:
       - name: Provision CI release keystore
         env:
           CPS: paperless-ci-storepass-2026
+          KS_B64: ${{ secrets.CI_KEYSTORE_B64 }}
         run: |
           cd android/app
-          keytool -genkeypair -v -keystore ci-release.keystore \
-            -alias paperless-mobile-ci -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass "$CPS" -keypass "$CPS" \
-            -dname "CN=Paperless Mobile CI, OU=Mobile, O=Troncooooo, L=Amsterdam, C=NL"
+          if [ -n "${KS_B64:-}" ]; then
+            echo "$KS_B64" | base64 -d > ci-release.keystore
+            echo "Using repository secret keystore (stable app identity)"
+          elif [ -f ../../signing/ci-release.keystore ]; then
+            cp ../../signing/ci-release.keystore ci-release.keystore
+            echo "Using canonical repo keystore (stable app identity)"
+          else
+            keytool -genkeypair -v -keystore ci-release.keystore \
+              -alias paperless-mobile-ci -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$CPS" -keypass "$CPS" \
+              -dname "CN=Paperless Mobile CI, OU=Mobile, O=Troncooooo, L=Amsterdam, C=NL"
+            echo "Generated ephemeral keystore (add signing/ci-release.keystore for stable signing)"
+          fi
           printf 'storeFile=ci-release.keystore\nkeyAlias=paperless-mobile-ci\nstorePassword=%s\nkeyPassword=%s\n' "$CPS" "$CPS" > ../key.properties
 
       - name: Show toolchain
