@@ -39,12 +39,12 @@ jobs:
         env:
           CPS: paperless-ci-storepass-2026
         run: |
-          cd android
+          cd android/app
           keytool -genkeypair -v -keystore ci-release.keystore \
             -alias paperless-mobile-ci -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass "$CPS" -keypass "$CPS" \
             -dname "CN=Paperless Mobile CI, OU=Mobile, O=Troncooooo, L=Amsterdam, C=NL"
-          printf 'storeFile=ci-release.keystore\nkeyAlias=paperless-mobile-ci\nstorePassword=%s\nkeyPassword=%s\n' "$CPS" "$CPS" > key.properties
+          printf 'storeFile=ci-release.keystore\nkeyAlias=paperless-mobile-ci\nstorePassword=%s\nkeyPassword=%s\n' "$CPS" "$CPS" > ../key.properties
 
       - name: Show toolchain
         run: flutter --version
@@ -64,6 +64,6 @@ jobs:
           name: paperless-mobile-release
           path: |
             build/app/outputs/flutter-apk/app-release.apk
-            android/ci-release.keystore
+            android/app/ci-release.keystore
             android/key.properties
           retention-days: 365
