@@ -4,7 +4,7 @@ import 'dart:io' show Directory, File, SecurityContext;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'ic_a_store.dart';
+import 'i_ca_store.dart';
 
 /// Loads an optional user-supplied custom CA (base64 **or** PEM) from
 /// [ICustomCaStore] into a [SecurityContext] — via a temp file and
