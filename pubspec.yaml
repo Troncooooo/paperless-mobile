@@ -113,6 +113,14 @@ dependencies:
   open_file: ^3.5.11
   jiffy: ^6.4.4
 
+dependency_overrides:
+  # T-03: the crop engine (edge_detection) is vendored under third_party/ so
+  # that the 4-corner crop editor (PaperRectangle.kt, PaperProcessor.kt,
+  # CropMath.kt) can be patched without depending on the upstream git pin.
+  # Remove this override + the third_party/ dir to revert to the git package.
+  edge_detection:
+    path: third_party/edge_detection
+
 dev_dependencies:
   integration_test:
     sdk: flutter
