@@ -57,18 +57,7 @@ class _ScannedImageItemState extends State<ScannedImageItem> {
                   height: 100,
                   child: Stack(
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 100,
-                        child: FittedBox(
-                          fit: BoxFit.cover,
-                          clipBehavior: Clip.antiAliasWithSaveLayer,
-                          alignment: Alignment.center,
-                          child: Image.file(
-                            widget.file,
-                          ),
-                        ),
-                      ),
+                      _ScanTileThumbnail(file: widget.file),
                       Positioned(
                         top: 0,
                         right: 0,
@@ -118,6 +107,34 @@ class _ScannedImageItemState extends State<ScannedImageItem> {
           body: PhotoView(imageProvider: FileImage(widget.file)),
         ),
       ),
+    );
+  }
+}
+
+/// Small image for the grid tile: downsampled to ~300 px once and held in the
+/// shared ImageCache, so a multi-scan buffer can't stall scrolling/first paint
+/// the way full-resolution `Image.file` decodes did.
+class _ScanTileThumbnail extends StatelessWidget {
+  final File file;
+
+  const _ScanTileThumbnail({required this.file});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.file(
+      file,
+      fit: BoxFit.cover,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      width: double.infinity,
+      height: 100,
+      cacheWidth: 300,
+      cacheHeight: 300,
+      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (wasSynchronouslyLoaded || frame != null) {
+          return child;
+        }
+        return ColoredBox(color: Theme.of(context).colorScheme.surfaceVariant);
+      },
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:developer' as dev;
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:edge_detection/edge_detection.dart';
@@ -374,7 +375,7 @@ class _ScannerPageState extends State<ScannerPage>
       }
       if (!mounted) return;
       DocumentUploadRoute(
-        $extra: file.readAsBytesSync(),
+        $extra: file.readAsBytes(),
         filename: filename,
         title: filename,
         fileExtension: extension,
@@ -397,23 +398,45 @@ class _ScannerPageState extends State<ScannerPage>
     assert(files.isNotEmpty);
     if (files.length == 1 && !forcePdf) {
       final ext = p.extension(files.first.path);
-      return AssembledFile(ext, files.first.readAsBytesSync());
+      return AssembledFile(ext, await files.first.readAsBytes());
     }
-    final doc = pw.Document();
+    // Load off the UI thread (async I/O) so the grid stays responsive.
+    final imageData = <Uint8List>[];
     for (final file in files) {
-      final img = pw.MemoryImage(file.readAsBytesSync());
-      doc.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat(
-            img.width!.toDouble(),
-            img.height!.toDouble(),
-          ),
-          build: (context) => pw.Image(img),
-        ),
-      );
+      imageData.add(await file.readAsBytes());
     }
-    return AssembledFile('.pdf', await doc.save());
+    // PDF assembly is CPU-bound (image decode + layout + save); keep it out of
+    // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
+    // to the UI isolate if compute() is unavailable (e.g. some test envs).
+    try {
+      final pdfBytes = await compute(_assemblePdf, imageData);
+      return AssembledFile('.pdf', pdfBytes);
+    } catch (error) {
+      dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
+      return AssembledFile('.pdf', _assemblePdf(imageData));
+    }
   }
+}
+
+/// Builds a multi-page PDF from raw image bytes (sent to a background
+/// isolate by [_ScannerPageState._assembleFileBytes]).
+///
+/// Must stay top-level: it is the entry point for `compute()`.
+Uint8List _assemblePdf(List<Uint8List> imageData) {
+  final doc = pw.Document();
+  for (final bytes in imageData) {
+    final img = pw.MemoryImage(Uint8List.fromList(bytes));
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat(
+          img.width!.toDouble(),
+          img.height!.toDouble(),
+        ),
+        build: (context) => pw.Image(img),
+      ),
+    );
+  }
+  return doc.saveSync();
 }
 
 class AssembledFile {
