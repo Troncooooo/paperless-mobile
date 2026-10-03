@@ -335,6 +335,11 @@ class _DocumentUploadPreparationPageState
             tags: tags?.mapOrNull(ids: (value) => value.include) ?? [],
             createdAt: createdAt?.toDateTime(),
             archiveSerialNumber: asn,
+            onProgressChanged: (progress) {
+              if (mounted) {
+                setState(() => _uploadProgress = progress);
+              }
+            },
           )
           .mutate();
 
@@ -351,6 +356,7 @@ class _DocumentUploadPreparationPageState
       }
     } on PaperlessApiException catch (error) {
       if (mounted) {
+        setState(() => _uploadProgress = null);
         showInfoMessage(
           context,
           InfoMessageException(code: error.code, message: error.details),
@@ -367,6 +373,7 @@ class _DocumentUploadPreparationPageState
         stackTrace: stackTrace,
       );
       if (mounted) {
+        setState(() => _uploadProgress = null);
         showErrorMessage(
           context,
           const PaperlessApiException.unknown(),
