@@ -80,4 +80,4 @@ jobs:
             build/app/outputs/flutter-apk/app-release.apk
             android/app/ci-release.keystore
             android/key.properties
-          retention-days: 365
+          retention-days: 90
