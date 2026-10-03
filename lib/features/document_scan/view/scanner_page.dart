@@ -1,6 +1,5 @@
 import 'dart:developer' as dev;
 import 'dart:io';
-import 'dart:isolate';
 import 'dart:math';
 
 import 'package:edge_detection/edge_detection.dart';
@@ -407,9 +406,9 @@ class _ScannerPageState extends State<ScannerPage>
     }
     // PDF assembly is CPU-bound (image decode + layout + save); keep it out of
     // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
-    // to the UI isolate if Isolate.run is unavailable (e.g. some test envs).
+    // to the UI isolate if compute() (background isolate) is unavailable.
     try {
-      final pdfBytes = await Isolate.run(_assemblePdf, imageData);
+      final pdfBytes = await compute(_assemblePdf, imageData);
       return AssembledFile('.pdf', pdfBytes);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
@@ -419,7 +418,7 @@ class _ScannerPageState extends State<ScannerPage>
 }
 
 /// Builds a multi-page PDF from raw image bytes (sent to a background
-/// isolate by [_ScannerPageState._assembleFileBytes] via Isolate.run).
+/// isolate by [_ScannerPageState._assembleFileBytes] via `compute`).
 ///
 /// Must stay top-level: it is the entry point for the isolate.
 Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
