@@ -257,11 +257,13 @@ class _ScannerPageState extends State<ScannerPage>
           context.localStore.state.globalSettings.enforceSinglePagePdfUpload,
     );
     if (!context.mounted) return;
+    // Stash the raw page bytes for the prep screen's cheap thumbnail
+    // (consume-once channel: go_router_builder cannot generate List<Uint8List>
+    // route fields — T-23).
+    UploadPagesChannel.set(file.pages);
     final uploadResult = await DocumentUploadRoute(
       $extra: file.bytes,
       fileExtension: file.extension,
-      // Raw page bytes for the cheap prep-screen thumbnail (T-23).
-      pages: file.pages,
     ).push<DocumentUploadResult>(context);
     if (uploadResult?.success ?? false) {
       if (!context.mounted) return;

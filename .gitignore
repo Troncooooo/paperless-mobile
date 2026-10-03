@@ -83,3 +83,4 @@ assets/changelogs/*.md
 .env.*
 
 .context/
+dist/

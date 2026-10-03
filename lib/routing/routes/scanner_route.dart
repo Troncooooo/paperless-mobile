@@ -10,6 +10,27 @@ import 'package:paperless_mobile/routing/navigation_keys.dart';
 
 import 'shells/authenticated_route.dart';
 
+/// One-shot navigation extras for the upload-prep screen: the raw scan page
+/// bytes, so the prep screen can show the first page directly instead of
+/// re-rasterizing the whole multi-page PDF (T-23).
+///
+/// go_router_builder v4 cannot generate `List<Uint8List>` route fields
+/// (it crashes in `_locationQueryParams`), so the page bytes travel through
+/// this consume-once channel instead of the route class.
+abstract final class UploadPagesChannel {
+  static List<Uint8List>? _pages;
+
+  static void set(List<Uint8List>? pages) => _pages = pages;
+
+  /// Returns the current pages and clears the channel (safe for a direct
+  /// `.push` navigation with a single target).
+  static List<Uint8List>? consume() {
+    final p = _pages;
+    _pages = null;
+    return p;
+  }
+}
+
 class ScannerBranch extends StatefulShellBranchData {
   static final GlobalKey<NavigatorState> $navigatorKey = scannerNavigatorKey;
 
@@ -33,7 +54,6 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
   final String? filename;
   final String? fileExtension;
   final bool? instantUpload;
-  final List<Uint8List>? pages;
 
   const DocumentUploadRoute({
     required this.$extra,
@@ -41,7 +61,6 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
     this.filename,
     this.fileExtension,
     this.instantUpload,
-    this.pages,
   });
 
   @override
@@ -52,7 +71,7 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
       filename: filename,
       fileBytes: $extra,
       instantUpload: instantUpload ?? false,
-      pages: pages,
+      pages: UploadPagesChannel.consume(),
     );
   }
 }
