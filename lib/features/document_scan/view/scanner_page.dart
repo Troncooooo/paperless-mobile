@@ -407,22 +407,22 @@ class _ScannerPageState extends State<ScannerPage>
     }
     // PDF assembly is CPU-bound (image decode + layout + save); keep it out of
     // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
-    // to the UI isolate if compute() is unavailable (e.g. some test envs).
+    // to the UI isolate if Isolate.run is unavailable (e.g. some test envs).
     try {
-      final pdfBytes = await compute(_assemblePdf, imageData);
+      final pdfBytes = await Isolate.run(_assemblePdf, arguments: imageData);
       return AssembledFile('.pdf', pdfBytes);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
-      return AssembledFile('.pdf', _assemblePdf(imageData));
+      return AssembledFile('.pdf', await _assemblePdf(imageData));
     }
   }
 }
 
 /// Builds a multi-page PDF from raw image bytes (sent to a background
-/// isolate by [_ScannerPageState._assembleFileBytes]).
+/// isolate by [_ScannerPageState._assembleFileBytes] via Isolate.run).
 ///
-/// Must stay top-level: it is the entry point for `compute()`.
-Uint8List _assemblePdf(List<Uint8List> imageData) {
+/// Must stay top-level: it is the entry point for the isolate.
+Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
   final doc = pw.Document();
   for (final bytes in imageData) {
     final img = pw.MemoryImage(Uint8List.fromList(bytes));
@@ -436,7 +436,7 @@ Uint8List _assemblePdf(List<Uint8List> imageData) {
       ),
     );
   }
-  return doc.saveSync();
+  return doc.save();
 }
 
 class AssembledFile {

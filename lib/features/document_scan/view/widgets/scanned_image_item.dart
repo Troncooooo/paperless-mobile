@@ -121,20 +121,22 @@ class _ScanTileThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.file(
-      file,
-      fit: BoxFit.cover,
-      clipBehavior: Clip.antiAliasWithSaveLayer,
-      width: double.infinity,
-      height: 100,
-      cacheWidth: 300,
-      cacheHeight: 300,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded || frame != null) {
-          return child;
-        }
-        return ColoredBox(color: Theme.of(context).colorScheme.surfaceVariant);
-      },
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.file(
+        file,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: 100,
+        cacheWidth: 300,
+        cacheHeight: 300,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) {
+            return child;
+          }
+          return ColoredBox(color: Theme.of(context).colorScheme.surfaceVariant);
+        },
+      ),
     );
   }
 }
