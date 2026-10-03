@@ -409,7 +409,7 @@ class _ScannerPageState extends State<ScannerPage>
     // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
     // to the UI isolate if Isolate.run is unavailable (e.g. some test envs).
     try {
-      final pdfBytes = await Isolate.run(_assemblePdf, message: imageData);
+      final pdfBytes = await Isolate.run(_assemblePdf, imageData);
       return AssembledFile('.pdf', pdfBytes);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
