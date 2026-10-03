@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -32,6 +33,7 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
   final String? filename;
   final String? fileExtension;
   final bool? instantUpload;
+  final List<Uint8List>? pages;
 
   const DocumentUploadRoute({
     required this.$extra,
@@ -39,6 +41,7 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
     this.filename,
     this.fileExtension,
     this.instantUpload,
+    this.pages,
   });
 
   @override
@@ -49,6 +52,7 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
       filename: filename,
       fileBytes: $extra,
       instantUpload: instantUpload ?? false,
+      pages: pages,
     );
   }
 }

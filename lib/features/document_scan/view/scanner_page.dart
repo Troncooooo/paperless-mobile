@@ -260,6 +260,8 @@ class _ScannerPageState extends State<ScannerPage>
     final uploadResult = await DocumentUploadRoute(
       $extra: file.bytes,
       fileExtension: file.extension,
+      // Raw page bytes for the cheap prep-screen thumbnail (T-23).
+      pages: file.pages,
     ).push<DocumentUploadResult>(context);
     if (uploadResult?.success ?? false) {
       if (!context.mounted) return;
@@ -409,10 +411,11 @@ class _ScannerPageState extends State<ScannerPage>
     // to the UI isolate if compute() (background isolate) is unavailable.
     try {
       final pdfBytes = await compute(_assemblePdf, imageData);
-      return AssembledFile('.pdf', pdfBytes);
+      return AssembledFile('.pdf', pdfBytes, pages: imageData);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
-      return AssembledFile('.pdf', await _assemblePdf(imageData));
+      return AssembledFile('.pdf', await _assemblePdf(imageData),
+          pages: imageData);
     }
   }
 }
@@ -441,6 +444,8 @@ Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
 class AssembledFile {
   final String extension;
   final Uint8List bytes;
-
-  AssembledFile(this.extension, this.bytes);
+  /// Raw per-page image bytes (JPEG/PNG) for a cheap thumbnail on the
+  /// upload-prep screen; null for single non-image files. See T-23.
+  final List<Uint8List>? pages;
+  AssembledFile(this.extension, this.bytes, {this.pages});
 }
