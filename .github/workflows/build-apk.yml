@@ -69,15 +69,23 @@ jobs:
       - name: Code generation (freezed / json_serializable / flutter_gen)
         run: dart run build_runner build
 
-      - name: Build release APK
-        run: flutter build apk --release --target-platform android-arm64
+      - name: Build release APK (arm64)
+        run: |
+          flutter build apk --release --target-platform android-arm64
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64.apk
+
+      - name: Build release APK (universal, all ABIs incl. 32-bit MediaTek)
+        run: |
+          flutter build apk --release
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-universal.apk
 
       - name: Upload APK + keystore artifact
         uses: actions/upload-artifact@v6
         with:
           name: paperless-mobile-release
           path: |
-            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/flutter-apk/app-release-arm64.apk
+            build/app/outputs/flutter-apk/app-release-universal.apk
             android/app/ci-release.keystore
             android/key.properties
           retention-days: 90
