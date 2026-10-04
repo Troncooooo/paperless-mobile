@@ -55,7 +55,7 @@ android {
         ndk {
             val abi = project.findProperty("ndkAbiFilters")?.toString()
             if (abi != null && abi.isNotBlank()) {
-                abiFilters = abi.split(",").map { it.trim() }
+                abiFilters.addAll(abi.split(",").map { it.trim() })
             }
         }
     }
