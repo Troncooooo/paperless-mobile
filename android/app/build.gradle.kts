@@ -48,6 +48,16 @@ android {
 
         // Required for flutter_local_notifications
         multiDexEnabled = true
+        // Optional ABI filter: -PndkAbiFilters=arm64-v8a (comma-separated).
+        // The vendored OpenCV AAR (T-03 crop) ships .so files for ALL ABIs and
+        // without a filter ends up in every APK (x86_64 alone = 75 MB). CI uses
+        // this to keep the arm64 build ~45 MB like stock paperless-mobile.
+        ndk {
+            val abi = project.findProperty("ndkAbiFilters")?.toString()
+            if (abi != null && abi.isNotBlank()) {
+                abiFilters = abi.split(",").map { it.trim() }
+            }
+        }
     }
 
     signingConfigs {

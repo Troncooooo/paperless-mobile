@@ -71,13 +71,15 @@ jobs:
 
       - name: Build release APK (arm64)
         run: |
-          flutter build apk --release --target-platform android-arm64
+          flutter build apk --release --target-platform android-arm64 -PndkAbiFilters=arm64-v8a
+          ls -la build/app/outputs/flutter-apk/
           mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64.apk
 
-      - name: Build release APK (universal, all ABIs incl. 32-bit MediaTek)
+      - name: Build release APK (arm64 + 32-bit armv7)
         run: |
-          flutter build apk --release
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-universal.apk
+          flutter build apk --release --target-platform android-arm,android-arm64 -PndkAbiFilters=arm64-v8a,armeabi-v7a
+          ls -la build/app/outputs/flutter-apk/
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64-armv7.apk
 
       - name: Upload APK + keystore artifact
         uses: actions/upload-artifact@v6
@@ -85,7 +87,7 @@ jobs:
           name: paperless-mobile-release
           path: |
             build/app/outputs/flutter-apk/app-release-arm64.apk
-            build/app/outputs/flutter-apk/app-release-universal.apk
+            build/app/outputs/flutter-apk/app-release-arm64-armv7.apk
             android/app/ci-release.keystore
             android/key.properties
           retention-days: 90
