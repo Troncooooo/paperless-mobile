@@ -257,6 +257,10 @@ class _ScannerPageState extends State<ScannerPage>
           context.localStore.state.globalSettings.enforceSinglePagePdfUpload,
     );
     if (!context.mounted) return;
+    // Stash the raw page bytes for the prep screen's cheap thumbnail
+    // (consume-once channel: go_router_builder cannot generate List<Uint8List>
+    // route fields — T-23).
+    UploadPagesChannel.set(file.pages);
     final uploadResult = await DocumentUploadRoute(
       $extra: file.bytes,
       fileExtension: file.extension,
@@ -374,7 +378,7 @@ class _ScannerPageState extends State<ScannerPage>
       }
       if (!mounted) return;
       DocumentUploadRoute(
-        $extra: file.readAsBytesSync(),
+        $extra: file.readAsBytes(),
         filename: filename,
         title: filename,
         fileExtension: extension,
@@ -397,28 +401,53 @@ class _ScannerPageState extends State<ScannerPage>
     assert(files.isNotEmpty);
     if (files.length == 1 && !forcePdf) {
       final ext = p.extension(files.first.path);
-      return AssembledFile(ext, files.first.readAsBytesSync());
+      return AssembledFile(ext, await files.first.readAsBytes());
     }
-    final doc = pw.Document();
+    // Load off the UI thread (async I/O) so the grid stays responsive.
+    final imageData = <Uint8List>[];
     for (final file in files) {
-      final img = pw.MemoryImage(file.readAsBytesSync());
-      doc.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat(
-            img.width!.toDouble(),
-            img.height!.toDouble(),
-          ),
-          build: (context) => pw.Image(img),
-        ),
-      );
+      imageData.add(await file.readAsBytes());
     }
-    return AssembledFile('.pdf', await doc.save());
+    // PDF assembly is CPU-bound (image decode + layout + save); keep it out of
+    // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
+    // to the UI isolate if compute() (background isolate) is unavailable.
+    try {
+      final pdfBytes = await compute(_assemblePdf, imageData);
+      return AssembledFile('.pdf', pdfBytes, pages: imageData);
+    } catch (error) {
+      dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
+      return AssembledFile('.pdf', await _assemblePdf(imageData),
+          pages: imageData);
+    }
   }
+}
+
+/// Builds a multi-page PDF from raw image bytes (sent to a background
+/// isolate by [_ScannerPageState._assembleFileBytes] via `compute`).
+///
+/// Must stay top-level: it is the entry point for the isolate.
+Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
+  final doc = pw.Document();
+  for (final bytes in imageData) {
+    final img = pw.MemoryImage(Uint8List.fromList(bytes));
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat(
+          img.width!.toDouble(),
+          img.height!.toDouble(),
+        ),
+        build: (context) => pw.Image(img),
+      ),
+    );
+  }
+  return doc.save();
 }
 
 class AssembledFile {
   final String extension;
   final Uint8List bytes;
-
-  AssembledFile(this.extension, this.bytes);
+  /// Raw per-page image bytes (JPEG/PNG) for a cheap thumbnail on the
+  /// upload-prep screen; null for single non-image files. See T-23.
+  final List<Uint8List>? pages;
+  AssembledFile(this.extension, this.bytes, {this.pages});
 }
