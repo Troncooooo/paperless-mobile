@@ -81,6 +81,26 @@ jobs:
           ls -la build/app/outputs/flutter-apk/
           mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-release-arm64-armv7.apk
 
+      - name: Verify APKs (zipalign + signature) — gate the upload
+        run: |
+          # Android SDK build-tools (present on the runner image; locate robustly)
+          for cand in "${ANDROID_HOME}" "${ANDROID_SDK_ROOT}" "$HOME/Android/Sdk" /usr/local/lib/android/sdk; do
+            [ -n "$cand" ] && [ -d "$cand/build-tools" ] && export ANDROID_HOME="$cand" && break
+          done
+          [ -d "${ANDROID_HOME:?Android SDK not found}"/build-tools ] 
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          echo "using build-tools: $BT"
+          for apk in build/app/outputs/flutter-apk/app-release-arm64.apk \
+                     build/app/outputs/flutter-apk/app-release-arm64-armv7.apk; do
+            echo "=== $apk ==="
+            # zipalign: -c fails (non-zero) if any uncompressed entry is unaligned
+            "$BT/zipalign" -c -v 4 "$apk" > /dev/null || { echo "FAIL: $apk not zipaligned"; exit 1; }
+            # apksigner: --strict fails on missing/invalid v2+ scheme; --print-certs logs the identity
+            "$BT/apksigner" verify --strict --verbose --print-certs "$apk" || { echo "FAIL: $apk signature invalid"; exit 1; }
+            sha256sum "$apk"
+            echo "OK: $apk aligned + signed"
+          done
+
       - name: Upload APK + keystore artifact
         uses: actions/upload-artifact@v6
         with:
