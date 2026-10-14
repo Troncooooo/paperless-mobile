@@ -95,10 +95,13 @@ jobs:
             echo "=== $apk ==="
             # zipalign: -c fails (non-zero) if any uncompressed entry is unaligned
             "$BT/zipalign" -c -v 4 "$apk" > /dev/null || { echo "FAIL: $apk not zipaligned"; exit 1; }
-            # apksigner: --strict fails on missing/invalid v2+ scheme; --print-certs logs the identity
-            "$BT/apksigner" verify --strict --verbose --print-certs "$apk" || { echo "FAIL: $apk signature invalid"; exit 1; }
+            # apksigner: verbose + print-certs; require the v2 scheme explicitly
+            # (v1/JAR alone is rejected by modern sideload paths; v2 is the floor)
+            VOUT=("$BT/apksigner" verify -v --print-certs "$apk") || { echo "FAIL: $apk signature invalid"; exit 1; }
+            printf '%s\n' "${VOUT[@]}" | grep -qE 'Verified using v[234]* scheme[^:]*: *(true|\*)' || { echo "FAIL: $apk missing v2 signature scheme"; exit 1; }
+            printf '%s\n' "${VOUT[@]}" | grep -E "digest:|DN:|Verified" || true
             sha256sum "$apk"
-            echo "OK: $apk aligned + signed"
+            echo "OK: $apk aligned + v2-signed"
           done
 
       - name: Upload APK + keystore artifact
