@@ -90,14 +90,19 @@ jobs:
           [ -d "${ANDROID_HOME:?Android SDK not found}"/build-tools ] 
           BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
           echo "using build-tools: $BT"
+          java -version 2>&1 | head -1
+          file $BT/zipalign $BT/apksigner 2>/dev/null || true
           for apk in build/app/outputs/flutter-apk/app-release-arm64.apk \
                      build/app/outputs/flutter-apk/app-release-arm64-armv7.apk; do
             echo "=== $apk ==="
             # zipalign: -c fails (non-zero) if any uncompressed entry is unaligned
-            "$BT/zipalign" -c -v 4 "$apk" > /dev/null || { echo "FAIL: $apk not zipaligned"; exit 1; }
+            OUT=$("$BT/zipalign" -c 4 "$apk" 2>&1); RC=$?
+            if [ $RC -ne 0 ]; then echo "FAIL: $apk not zipaligned (rc=$RC)"; echo "$OUT"; exit 1; fi
             # apksigner: verbose + print-certs; require the v2 scheme explicitly
             # (v1/JAR alone is rejected by modern sideload paths; v2 is the floor)
-            VOUT=("$BT/apksigner" verify -v --print-certs "$apk") || { echo "FAIL: $apk signature invalid"; exit 1; }
+            OUT2=$("$BT/apksigner" verify -v --print-certs "$apk" 2>&1); RC2=$?
+            if [ $RC2 -ne 0 ]; then echo "FAIL: $apk signature invalid (rc=$RC2)"; echo "$OUT2"; exit 1; fi
+            VOUT=("$OUT2")
             printf '%s\n' "${VOUT[@]}" | grep -qE 'Verified using v[234]* scheme[^:]*: *(true|\*)' || { echo "FAIL: $apk missing v2 signature scheme"; exit 1; }
             printf '%s\n' "${VOUT[@]}" | grep -E "digest:|DN:|Verified" || true
             sha256sum "$apk"
