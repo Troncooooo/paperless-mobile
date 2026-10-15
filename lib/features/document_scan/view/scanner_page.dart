@@ -432,8 +432,8 @@ Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
   for (final bytes in imageData) {
     // MemoryImage decodes the bytes internally — no extra copy needed.
     final img = pw.MemoryImage(bytes);
-    final width = img.width!;
-    final height = img.height!;
+    final width = img.width!.toDouble();
+    final height = img.height!.toDouble();
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat(width, height),
