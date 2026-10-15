@@ -257,10 +257,6 @@ class _ScannerPageState extends State<ScannerPage>
           context.localStore.state.globalSettings.enforceSinglePagePdfUpload,
     );
     if (!context.mounted) return;
-    // Stash the raw page bytes for the prep screen's cheap thumbnail
-    // (consume-once channel: go_router_builder cannot generate List<Uint8List>
-    // route fields — T-23).
-    UploadPagesChannel.set(file.pages);
     final uploadResult = await DocumentUploadRoute(
       $extra: file.bytes,
       fileExtension: file.extension,
@@ -411,13 +407,18 @@ class _ScannerPageState extends State<ScannerPage>
     // PDF assembly is CPU-bound (image decode + layout + save); keep it out of
     // the UI isolate so a 35+ scan buffer doesn't freeze the app. Fall back
     // to the UI isolate if compute() (background isolate) is unavailable.
+    //
+    // Memory: the per-page byte lists are NOT retained beyond this call.
+    // Keeping 16+ full-res page JPEGs alive alongside the assembled PDF and
+    // the multipart upload buffer OOM-crashes the app when the upload screen
+    // is built (T-24). The prep screen's preview rasters page 1 of the PDF
+    // at 72 dpi instead.
     try {
       final pdfBytes = await compute(_assemblePdf, imageData);
-      return AssembledFile('.pdf', pdfBytes, pages: imageData);
+      return AssembledFile('.pdf', pdfBytes);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
-      return AssembledFile('.pdf', await _assemblePdf(imageData),
-          pages: imageData);
+      return AssembledFile('.pdf', await _assemblePdf(imageData));
     }
   }
 }
@@ -429,13 +430,13 @@ class _ScannerPageState extends State<ScannerPage>
 Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
   final doc = pw.Document();
   for (final bytes in imageData) {
-    final img = pw.MemoryImage(Uint8List.fromList(bytes));
+    // MemoryImage decodes the bytes internally — no extra copy needed.
+    final img = pw.MemoryImage(bytes);
+    final width = img.width!;
+    final height = img.height!;
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(
-          img.width!.toDouble(),
-          img.height!.toDouble(),
-        ),
+        pageFormat: PdfPageFormat(width, height),
         build: (context) => pw.Image(img),
       ),
     );
@@ -446,8 +447,5 @@ Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
 class AssembledFile {
   final String extension;
   final Uint8List bytes;
-  /// Raw per-page image bytes (JPEG/PNG) for a cheap thumbnail on the
-  /// upload-prep screen; null for single non-image files. See T-23.
-  final List<Uint8List>? pages;
-  AssembledFile(this.extension, this.bytes, {this.pages});
+  AssembledFile(this.extension, this.bytes);
 }

@@ -34,11 +34,6 @@ class DocumentUploadPreparationPage extends StatefulWidget {
   final String? filename;
   final String? fileExtension;
   final bool instantUpload;
-  /// The raw scan page bytes (JPEG/PNG). When present, the preview renders
-  /// only the first page via `Image.memory` instead of rasterizing the whole
-  /// multi-page PDF — the full-PDF raster OOM-crashes for ~10+ full-res scans
-  /// (T-23).
-  final List<Uint8List>? pages;
 
   const DocumentUploadPreparationPage({
     super.key,
@@ -47,7 +42,6 @@ class DocumentUploadPreparationPage extends StatefulWidget {
     this.filename,
     this.fileExtension,
     this.instantUpload = false,
-    this.pages,
   });
 
   @override
@@ -125,10 +119,6 @@ class _DocumentUploadPreparationPageState
                         children: [
                           FileThumbnail(
                             bytes: snapshot.data!,
-                            // Render the header preview from the already-built
-                            // source pages instead of rasterizing the whole
-                            // multi-page PDF (OOM for ~10+ full-res scans).
-                            pages: widget.pages,
                             fit: BoxFit.fitWidth,
                             width: MediaQuery.sizeOf(context).width,
                           ),
