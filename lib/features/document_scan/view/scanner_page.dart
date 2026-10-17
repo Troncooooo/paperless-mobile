@@ -257,6 +257,10 @@ class _ScannerPageState extends State<ScannerPage>
           context.localStore.state.globalSettings.enforceSinglePagePdfUpload,
     );
     if (!context.mounted) return;
+    // Hand the prep screen the first-page preview (one-shot, T-38): the
+    // header renders this JPEG instead of rasterizing the assembled PDF through
+    // the printing plugin, which OOMs on multi-page scans.
+    UploadPreviewChannel.set(file.previewPage);
     final uploadResult = await DocumentUploadRoute(
       $extra: file.bytes,
       fileExtension: file.extension,
@@ -396,8 +400,10 @@ class _ScannerPageState extends State<ScannerPage>
   }) async {
     assert(files.isNotEmpty);
     if (files.length == 1 && !forcePdf) {
-      final ext = p.extension(files.first.path);
-      return AssembledFile(ext, await files.first.readAsBytes());
+      final first = files.first;
+      final ext = p.extension(first.path);
+      final bytes = await first.readAsBytes();
+      return AssembledFile(ext, bytes, previewPage: bytes);
     }
     // Load off the UI thread (async I/O) so the grid stays responsive.
     final imageData = <Uint8List>[];
@@ -411,14 +417,16 @@ class _ScannerPageState extends State<ScannerPage>
     // Memory: the per-page byte lists are NOT retained beyond this call.
     // Keeping 16+ full-res page JPEGs alive alongside the assembled PDF and
     // the multipart upload buffer OOM-crashes the app when the upload screen
-    // is built (T-24). The prep screen's preview rasters page 1 of the PDF
-    // at 72 dpi instead.
+    // is built (T-24). The prep screen's header renders the first-page JPEG
+    // directly (T-38) — the PDF is never handed to the printing plugin.
+    final previewPage = await files.first.readAsBytes();
     try {
       final pdfBytes = await compute(_assemblePdf, imageData);
-      return AssembledFile('.pdf', pdfBytes);
+      return AssembledFile('.pdf', pdfBytes, previewPage: previewPage);
     } catch (error) {
       dev.log('[ScannerPage] PDF isolate failed, falling back: $error');
-      return AssembledFile('.pdf', await _assemblePdf(imageData));
+      return AssembledFile('.pdf', await _assemblePdf(imageData),
+          previewPage: previewPage);
     }
   }
 }
@@ -447,5 +455,7 @@ Future<Uint8List> _assemblePdf(List<Uint8List> imageData) async {
 class AssembledFile {
   final String extension;
   final Uint8List bytes;
-  AssembledFile(this.extension, this.bytes);
+  /// Small first-page JPEG for the prep-screen header (T-38).
+  final Uint8List? previewPage;
+  AssembledFile(this.extension, this.bytes, {this.previewPage});
 }

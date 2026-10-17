@@ -9,11 +9,12 @@ import 'package:transparent_image/transparent_image.dart';
 class FileThumbnail extends StatefulWidget {
   final File? file;
   final Uint8List? bytes;
-  /// The raw scan page bytes (JPEG/PNG) of an assembled multi-page PDF.
-  /// When set, the header preview renders only the first page via
-  /// `Image.memory` instead of rasterizing the whole PDF — rasterizing a
-  /// ~10+ full-res-scan PDF OOM-crashes the app (T-23).
-  final List<Uint8List>? pages;
+  /// A pre-rendered first page (JPEG) of an assembled multi-page PDF. When
+  /// set, the header renders this single page via `Image.memory` and never
+  /// asks the printing plugin to raster the assembled PDF — sending a
+  /// 100+ MB PDF over the MethodChannel makes the native side build an
+  /// equally large String and OOM the 256 MB Java heap (T-38).
+  final Uint8List? previewBytes;
 
   final BoxFit? fit;
   final double? width;
@@ -22,7 +23,7 @@ class FileThumbnail extends StatefulWidget {
     super.key,
     this.file,
     this.bytes,
-    this.pages,
+    this.previewBytes,
     this.fit,
     this.width,
     this.height,
@@ -38,13 +39,13 @@ class _FileThumbnailState extends State<FileThumbnail> {
   @override
   void initState() {
     super.initState();
-    final pages = widget.pages;
-    if (pages != null && pages.isNotEmpty) {
-      // Assembled scan PDF with raw page bytes available: the preview is a
-      // single small `Image.memory` of the first page — never reads the full
-      // PDF bytes and never rasters it (T-23).
+    final preview = widget.previewBytes;
+    if (preview != null) {
+      // Assembled scan PDF with a first-page preview: render that small JPEG
+      // via `Image.memory` — never reads the full PDF bytes and never
+      // rasters it (T-38).
       mimeType = 'application/pdf';
-      _fileBytes = Future.value(null);
+      _fileBytes = Future.value(preview);
     } else {
       mimeType = widget.file != null
           ? mime.lookupMimeType(widget.file!.path)
@@ -57,12 +58,12 @@ class _FileThumbnailState extends State<FileThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = widget.pages;
+    final preview = widget.previewBytes;
 
     return switch (mimeType) {
-      "application/pdf" => pages != null && pages.isNotEmpty
+      "application/pdf" => preview != null
           ? Image.memory(
-              pages.first,
+              preview,
               fit: widget.fit,
               width: widget.width,
               height: widget.height,
@@ -82,8 +83,8 @@ class _FileThumbnailState extends State<FileThumbnail> {
                 child: FutureBuilder<Uint8List?>(
                   future: _fileBytes,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const SizedBox.shrink();
+                    if (!snapshot.hasData || snapshot.data == null) {
+                      return const Icon(Icons.picture_as_pdf_outlined);
                     }
                     return ColoredBox(
                       color: Colors.white,
@@ -126,6 +127,13 @@ class _FileThumbnailState extends State<FileThumbnail> {
 
   // send pdfFile as params
   Future<Uint8List?> _convertPdfToPng(Uint8List bytes) async {
+    // Hard guard (T-38): Printing.raster ships the whole document over the
+    // MethodChannel; at tens of MB the native base64/UTF-8 expansion OOMs
+    // the 256 MB Java heap (a 115 MB PDF died at a 153 MB channel string).
+    // Large PDFs without a first-page preview show a placeholder instead.
+    if (bytes.length > _maxRasterBytes) {
+      return null;
+    }
     final info = await Printing.info();
     if (!info.canRaster) {
       return kTransparentImage;
@@ -133,4 +141,9 @@ class _FileThumbnailState extends State<FileThumbnail> {
     final raster = await Printing.raster(bytes, pages: [0], dpi: 72).first;
     return raster.toPng();
   }
+
+  /// Above this size `Printing.raster(bytes)` OOMs the native 256 MB heap
+  /// (T-38: a 115 MB assembled PDF died at a 153 MB channel string). 8 MB
+  /// keeps the base64/UTF-8 expansion around 22 MB — safely inside heap.
+  static const int _maxRasterBytes = 8 * 1024 * 1024;
 }

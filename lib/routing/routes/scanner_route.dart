@@ -25,6 +25,23 @@ class ScannerRoute extends GoRouteData with $ScannerRoute {
   }
 }
 
+/// One-shot preview channel for the upload-prep screen: the raw JPEG of the
+/// FIRST scanned page only. The prep header renders it via `Image.memory`
+/// instead of asking the printing plugin to raster the assembled PDF —
+/// sending a multi-page PDF over the MethodChannel makes the native side
+/// build a ~100 MB String and OOM the app's 256 MB Java heap (T-23 / T-38).
+abstract final class UploadPreviewChannel {
+  static Uint8List? _preview;
+
+  static void set(Uint8List? preview) => _preview = preview;
+
+  static Uint8List? consume() {
+    final p = _preview;
+    _preview = null;
+    return p;
+  }
+}
+
 class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
   static final GlobalKey<NavigatorState> $parentNavigatorKey =
       outerShellNavigatorKey;
@@ -50,6 +67,7 @@ class DocumentUploadRoute extends GoRouteData with $DocumentUploadRoute {
       filename: filename,
       fileBytes: $extra,
       instantUpload: instantUpload ?? false,
+      previewBytes: UploadPreviewChannel.consume(),
     );
   }
 }

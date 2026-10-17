@@ -30,6 +30,9 @@ class DocumentUploadResult {
 
 class DocumentUploadPreparationPage extends StatefulWidget {
   final FutureOr<Uint8List> fileBytes;
+  /// First-page JPEG from the scan flow, rendered directly by the thumbnail
+  /// (no printing plugin — see T-38). May be null from other entry points.
+  final Uint8List? previewBytes;
   final String? title;
   final String? filename;
   final String? fileExtension;
@@ -38,6 +41,7 @@ class DocumentUploadPreparationPage extends StatefulWidget {
   const DocumentUploadPreparationPage({
     super.key,
     required this.fileBytes,
+    this.previewBytes,
     this.title,
     this.filename,
     this.fileExtension,
@@ -119,6 +123,7 @@ class _DocumentUploadPreparationPageState
                         children: [
                           FileThumbnail(
                             bytes: snapshot.data!,
+                            previewBytes: widget.previewBytes,
                             fit: BoxFit.fitWidth,
                             width: MediaQuery.sizeOf(context).width,
                           ),
